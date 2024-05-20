@@ -2,7 +2,9 @@ import copy
 import numpy as np
 import random
 import json
-import Organism_Class
+
+from Bin_Class import Bin
+from Organism_Class import Organism
 from main import config
 
 NUMBER_OF_INITIAL_POPULATION = config['NUMBER_OF_INITIAL_POPULATION']
@@ -23,14 +25,14 @@ def bin_range_assignation(bins):
         min_value = max_value
 
 
-def generate_population():
+def generate_population() -> list[Organism]:
     """
     Function that generates the original population
     :return: The list of the initial organisms that make up the global population
     """
     population = []
     for i in range(0, NUMBER_OF_INITIAL_POPULATION):
-        organism = Organism_Class.Organism()
+        organism = Organism()
         organism.generate_motif()
         population.append(organism)
 
@@ -43,7 +45,7 @@ def generate_population():
     return population
 
 
-def compute_information_content(population):
+def compute_information_content(population: list[Organism]):
     """
         Calls function compute_ic of every organism that needs to be computed
         :param population: General population
@@ -54,7 +56,7 @@ def compute_information_content(population):
             motif.compute_ic()
 
 
-def compute_gini(population):
+def compute_gini(population: list[Organism]) -> None:
     """
     Calls function compute_gini of every organism that needs to be computed
     :param population: General population
@@ -65,7 +67,7 @@ def compute_gini(population):
             motif.compute_gini()
 
 
-def sort_bins(population, bins):
+def sort_bins(population: list[Organism], bins: list[Bin]) -> None:
     """
     This function sorts population organisms in its corresponding bin
     :param population: General population
@@ -78,7 +80,7 @@ def sort_bins(population, bins):
             bins[value].set_population(organism)
 
 
-def reproduction_process(population):
+def reproduction_process(population: list[Organism]) -> list[Organism]:
     """
     This function reproduces the current total population, not having in mind the bin where they come from
     :param population: Global population
@@ -146,7 +148,7 @@ def reproduction_process(population):
     return new_population
 
 
-def control_overpopulation(population, bins):
+def control_overpopulation(population: list[Organism], bins: list[Bin]) -> None:
     """
     Checks if the bin exceeds maximum population and if so it calls selection_process of the bin
     :param population: Global population
@@ -160,7 +162,7 @@ def control_overpopulation(population, bins):
             bin.selection_process(population, number_of_competitions)  # Select organisms to stay
 
 
-def check_stop(bins, bins_averages):
+def check_stop(bins: list[Bin], bins_averages) -> np.ndarray[bool]:
     """
     Checks if we need to stop the execution (Stopping criterion)
     :param bins: Containers

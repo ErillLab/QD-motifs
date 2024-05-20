@@ -1,6 +1,5 @@
 import numpy as np
 import random
-import json
 from main import config
 
 
@@ -25,18 +24,17 @@ apriori_entropy = compute_apriori_entropy_GC()
 
 class Organism:
     # Variables
-    __L = config['L']  # Sites of length
-    __N = config['N']  # N sites
-    __IC = config['IC']
-    __Position_IC = np.empty(shape=__L, dtype=float)
-    __PROB = np.empty(shape=__L, dtype=float)
-    __GINI = config['GINI']
-    __MSE_IC = 0
-    __Motif = None  # Sites
-    __Compute = config['COMPUTE']  # Flag to control if IC gets computed
+    __L: int = config['L']  # Sites of length
+    __N: int = config['N']  # N sites
+    __total_IC: int = config['IC']
+    __Position_IC: list[float] = np.empty(shape=__L, dtype=float)
+    __PROB: list[float] = np.empty(shape=__L, dtype=float)
+    __GINI: float = config['GINI']
+    __MSE_IC: float = 0
+    __Motif: np.ndarray[list[str]] = None  # Sites
+    __Compute: bool = config['COMPUTE']  # Flag to control if IC gets computed
 
     def __str__(self):
-        print('IC Column: ' + str(self.__Position_IC))
         return f'{self.__Position_IC}'
 
     # def getters
@@ -50,7 +48,7 @@ class Organism:
         return self.__Motif
 
     def get_total_ic(self):
-        return self.__IC
+        return self.__total_IC
 
     def get_position_ic(self):
         return self.__Position_IC
@@ -72,19 +70,19 @@ class Organism:
         self.__PROB = probabilities
 
     def set_total_ic(self, ic):
-        self.__IC = ic
+        self.__total_IC = ic
 
     def set_position_ic(self, position_ic):  # Sets vector of IC per position and flags IC to not compute again
         self.__Position_IC = position_ic
 
-    def set_GINI(self, gini):
+    def set_GINI(self, gini: float) -> None:
         self.__GINI = gini
         self.set_flag(False)  # To not compute IC & GINI if motif hasn't changed
 
-    def set_flag(self, flag):  # Might change if more flags are added
+    def set_flag(self, flag: bool) -> None:  # Might change if more flags are added
         self.__Compute = flag
 
-    def set_mse_IC(self, total_ic): # Compute and set mean squared error based on Target IC
+    def set_mse_IC(self, total_ic: float) -> None:  # Compute and set mean squared error based on Target IC
         """
         Computes organism MSE given target_IC = config['L'] * config['BITS_POSITION']
         :param total_ic: Total IC of the motif
@@ -93,7 +91,7 @@ class Organism:
         self.__MSE_IC = (total_ic - (config['L'] * config['BITS_POSITION']))**2
 
     # def class methods
-    def generate_motif(self):
+    def generate_motif(self) -> None:
         """
         Generate random binding sites that make up the binding motif of the organism
         :return: motif
@@ -103,7 +101,7 @@ class Organism:
         binding_sites = np.array([[random.choice(dna_letters) for _ in range(self.__L)] for _ in range(self.__N)])
         self.set_motif(binding_sites)
 
-    def compute_ic(self):
+    def compute_ic(self) -> None:
         """
         Computes information content of the organism and saves the following variables
         :var: probabilities: list of probabilities of each DNA base in each position of the motif (L)
@@ -144,7 +142,7 @@ class Organism:
         self.set_total_ic(total_information_content)
         self.set_mse_IC(total_information_content)
 
-    def compute_gini(self):
+    def compute_gini(self) -> None:
         """
         Compute gini given self.__Position_IC and controls any possible error
         :return:
@@ -163,13 +161,13 @@ class Organism:
         # Save gini value
         self.set_GINI(gini)
 
-    def mutation(self, method='basic'):
+    def mutation(self, method: str = 'basic') -> None:
         """
         Applies mutations to the binding motif
         :param method: Mutation method
         :return:
         """
-        dna_letters = ['A', 'C', 'G', 'T']
+        dna_letters: list[str] = ['A', 'C', 'G', 'T']
         if method == 'basic':   # Change random position
             row = random.randint(0, self.__N - 1)  # Get random row
             col = random.randint(0, self.__L - 1)  # Get random column
@@ -189,12 +187,12 @@ class Organism:
             self.__Motif[row][col1], self.__Motif[row][col2] = (
                 self.__Motif[row][col2], self.__Motif[row][col1])  # Swap columns
 
-    def save_tf_binding_sites(self, position):
+    def save_tf_binding_sites(self, position: int) -> str:
         """
         Used to save transcription factor binding sites on a json
         :param position: binding site
         :return:
         """
-        binding_site = self.__Motif[position].tolist()  # Transform ndarray to list
+        binding_site: list[str] = self.__Motif[position].tolist()  # Transform ndarray to list
         string = ''.join(binding_site)  # List to string
         return string
