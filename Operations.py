@@ -1,7 +1,11 @@
+from __future__ import annotations
+
 import copy
 import numpy as np
 import random
 import json
+
+from numpy import bool_
 
 from Bin_Class import Bin
 from Organism_Class import Organism
@@ -25,9 +29,10 @@ def bin_range_assignation(bins):
         min_value = max_value
 
 
-def generate_population() -> list[Organism]:
+def generate_population(flag_max_bin: bool = False) -> list[Organism]:
     """
     Function that generates the original population
+    :param flag_max_bin: flag to control if population in the bin with range 0.9-1 is given
     :return: The list of the initial organisms that make up the global population
     """
     population = []
@@ -36,12 +41,20 @@ def generate_population() -> list[Organism]:
         organism.generate_motif()
         population.append(organism)
 
-    population_file = ('./outputs/population_L' + str(config['L']) + '_N' + str(config['N'])
-                       + '_BP' + str(config['BITS_POSITION']) + '.json')
-    with open(population_file, 'w') as file:
-        file.write('Population:\n')
-        json.dump([motif.get_organism().tolist() for motif in population], file)
-        file.write('\n')
+    if flag_max_bin:
+        dna_letters = ['A', 'C', 'G', 'T']
+        for base in dna_letters:
+            organism = Organism()
+            organism.generate_max_motifs(base)
+            population.append(organism)
+
+
+    # population_file = ('./outputs/population_L' + str(config['L']) + '_N' + str(config['N'])
+    #                    + '_BP' + str(config['BITS_POSITION']) + '.json')
+    # with open(population_file, 'w') as file:
+    #     file.write('Population:\n')
+    #     json.dump([motif.get_organism().tolist() for motif in population], file)
+    #     file.write('\n')
     return population
 
 
@@ -74,10 +87,11 @@ def sort_bins(population: list[Organism], bins: list[Bin]) -> None:
     :param bins: Containers
     :return:
     """
-    if len(bins) == 10:     # Sort organism in corresponding bin
-        for organism in population:
-            value = int(organism.get_gini() * len(bins))
-            bins[value].set_population(organism)
+    for organism in population:
+        value = int(organism.get_gini() * len(bins))
+        if value == config['NUMBER_OF_BINS']:
+            value = value - 1
+        bins[value].set_population(organism)
 
 
 def reproduction_process(population: list[Organism]) -> list[Organism]:
@@ -100,7 +114,7 @@ def reproduction_process(population: list[Organism]) -> list[Organism]:
         if random.choice([True, False]):  # Random choice to decide if recombination or mutation
 
             length = ((first_son.get_l()) / 2)
-            swap_length = random.randint(1, length)  # Selects swap length M=(1 ... L/2)
+            swap_length = random.randint(1, int(length))  # Selects swap length M=(1 ... L/2)
 
             # Select position in org 1 (p1 = 1 ... L-M)
             position_swap_org_1 = random.randint(0, (first_son.get_l() - swap_length) - 1)
@@ -162,25 +176,28 @@ def control_overpopulation(population: list[Organism], bins: list[Bin]) -> None:
             bin.selection_process(population, number_of_competitions)  # Select organisms to stay
 
 
-def check_stop(bins: list[Bin], bins_averages) -> np.ndarray[bool]:
+def check_stop(bins: list[Bin], bins_minimum_fitness: np.array(list[float])) -> bool | bool_ | bool_:
     """
     Checks if we need to stop the execution (Stopping criterion)
+    :param bins_minimum_fitness: Container of Minimum Fitness in bin for the last config A.F.I.T.R. iterations
     :param bins: Containers
-    :param bins_averages: Container Average fitness of the last config['AVERAGE_FITNESS_ITERATIONS_TO_REVIEW'] iterations
     :return: Boolean to control if we stop or not
     """
     check = np.full((len(bins)), False)
     for i, bin in enumerate(bins):
-        if len(bin.get_population()) == MAX_BIN_POPULATION_SIZE:
-            bin.average_IC()
-            bins_averages[i] = np.append(bins_averages[i],
-                                         bin.get_average_ic())[-(config['AVERAGE_FITNESS_ITERATIONS_TO_REVIEW']):]
-            greater_than_min = all(n >= (bins_averages[i][-1] - config['VARIATION']) for n in bins_averages[i])
-            less_than_max = all(n <= (bins_averages[i][-1] + config['VARIATION']) for n in bins_averages[i])
-            if greater_than_min and less_than_max:
-                check[i] = True
-        else:
-            return False
+        bin.compute_minimum_fitness()
+        bins_minimum_fitness[i] = np.append(bins_minimum_fitness[i],
+                                            bin.get_minimum_fitness())[
+                                  -(config['AVERAGE_FITNESS_ITERATIONS_TO_REVIEW']):]
+        # Check no iteration has changed more than the variation of the last value computed downwards
+        greater_than_min = all(
+            n >= (bins_minimum_fitness[i][-1] - config['VARIATION']) for n in bins_minimum_fitness[i])
+        # Check no iteration has changed more than the variation of the last value computed upwards
+        less_than_max = all(n <= (bins_minimum_fitness[i][-1] + config['VARIATION']) for n in bins_minimum_fitness[i])
+        none_zero = all(n != 0.0 for n in bins_minimum_fitness[i])  # Check no bin maximum is = 0
+        if greater_than_min and less_than_max and none_zero:
+            check[i] = True
     if np.all(check):
         print('ENDING')
-    return np.all(check)
+        return True
+    return False

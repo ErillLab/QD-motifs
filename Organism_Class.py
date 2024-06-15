@@ -14,7 +14,7 @@ def compute_apriori_entropy_GC():
     at /= 2
     gc = config['GC'] / 2
     probabilities = np.array([at, gc, gc, at])  # Estimated probabilities of bases [A, C, G, T]
-    probabilities = [x + config['C'] for x in probabilities]  # Add 1e-10 to eliminate 0s
+    # probabilities = [x + config['C'] for x in probabilities]  # Add 1e-10 to eliminate 0s
     apr_ent = -np.sum(probabilities * np.log2(probabilities))
     return apr_ent
 
@@ -24,15 +24,15 @@ apriori_entropy = compute_apriori_entropy_GC()
 
 class Organism:
     # Variables
-    __L: int = config['L']  # Sites of length
-    __N: int = config['N']  # N sites
+    __L: int = config['L']  # Length of sites
+    __N: int = config['N']  # Number of sites
     __total_IC: int = config['IC']
     __Position_IC: list[float] = np.empty(shape=__L, dtype=float)
     __PROB: list[float] = np.empty(shape=__L, dtype=float)
     __GINI: float = config['GINI']
     __MSE_IC: float = 0
     __Motif: np.ndarray[list[str]] = None  # Sites
-    __Compute: bool = config['COMPUTE']  # Flag to control if IC gets computed
+    __Compute: bool = config['COMPUTE']  # Flag to control computations
 
     def __str__(self):
         return f'{self.__Position_IC}'
@@ -88,7 +88,7 @@ class Organism:
         :param total_ic: Total IC of the motif
         :return:
         """
-        self.__MSE_IC = (total_ic - (config['L'] * config['BITS_POSITION']))**2
+        self.__MSE_IC = (total_ic - (config['L'] * config['BITS_POSITION'])) ** 2
 
     # def class methods
     def generate_motif(self) -> None:
@@ -101,6 +101,31 @@ class Organism:
         binding_sites = np.array([[random.choice(dna_letters) for _ in range(self.__L)] for _ in range(self.__N)])
         self.set_motif(binding_sites)
 
+    def generate_max_motifs(self, dna_base) -> None:
+        """
+               Generate binding sites that make up the binding motif of the organism in the last bin
+               :return: motif
+               """
+        dna_letters = ['A', 'C', 'G', 'T']  # Letras de ADN
+        num_letters = len(dna_letters)
+
+        if self.__N % num_letters != 0:
+            raise ValueError(
+                "N should be multiple of 4")
+
+        # Generate binding sites
+        binding_sites = np.empty((self.__N, self.__L), dtype=str)
+
+        for col in range((self.__L - 1)):
+            column_letters = dna_letters * (self.__N // num_letters)
+            random.shuffle(column_letters)
+            for row in range(self.__N):
+                binding_sites[row, col] = column_letters[row]
+
+        for row in range(self.__N):
+            binding_sites[row, self.__L - 1] = dna_base
+
+        self.set_motif(binding_sites)
     def compute_ic(self) -> None:
         """
         Computes information content of the organism and saves the following variables
@@ -128,10 +153,8 @@ class Organism:
 
             probabilities.append(base_probabilities)
 
-            value = np.sum(base_probabilities * np.log2(base_probabilities))
-
-            position_information_content = max(0, apriori_entropy + value)  # Compute IC
-
+            value = (- np.sum(base_probabilities * np.log2(base_probabilities)))
+            position_information_content = max(0, apriori_entropy - value)  # Compute IC
             position_ic[i] = position_information_content  # Save IC per position
             total_information_content += position_information_content  # Compute total IC
 
@@ -150,13 +173,13 @@ class Organism:
         # Formula used = sum{i=1, n}((2i - (length) - 1)*xi)/(length)*sum{i=1, n}xi
 
         ics = sorted(self.__Position_IC)  # We sort the IC of every position
-        ics = [x + config['C'] for x in ics]  # Add 1e-10 to eliminate 0s
+        # ics = [x + config['C'] for x in ics]  # Add 1e-10 to eliminate 0s
         index = np.arange(1, self.__L + 1)  # Array of index
         gini = max(0, ((np.sum((2 * index - self.__L - 1) * ics)) / (self.__L * np.sum(ics))))  # Formula applied
 
         # Gini error control
         assert gini >= 0, ('Gini lower than 0 => ', gini, 'Position ICs =>', self.__Position_IC)
-        assert gini < 1, ('Gini greater than 1 =>', gini, 'Position ICs =>', self.__Position_IC)
+        assert gini <= 1, ('Gini greater than 1 =>', gini, 'Position ICs =>', self.__Position_IC)
 
         # Save gini value
         self.set_GINI(gini)

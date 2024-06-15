@@ -1,12 +1,11 @@
 {
     "C": 1e-06,
-    "L": 8,
+    "L": 16,
     "N": 64,
     "IC": 0,
     "GINI": -1,
     "COMPUTE": true,
     "BITS_POSITION": 1,
-
     "RANGE": [
         0.0,
         1.0
@@ -17,8 +16,8 @@
     "NUMBER_OF_BINS": 10,
     "NUMBER_OF_INITIAL_POPULATION": 100,
     "MAX_BIN_POPULATION_SIZE": 10,
-    "AVERAGE_FITNESS_ITERATIONS_TO_REVIEW": 5,
-    "MAX_ITERATIONS": 500,
+    "AVERAGE_FITNESS_ITERATIONS_TO_REVIEW": 500,
+    "MAX_ITERATIONS": 10000,
     "VARIATION": 0.0001,
-    "GC": 0.47
+    "GC": 0.5
 }

@@ -6,19 +6,23 @@ from main import config
 
 class Bin:
     # Variables
-    __Bin_Range: (float, float) = config['RANGE']  # Interval that represents [0..0,25] [0,25..0,50]...
-    __Population: list[Organism] = config['POPULATION'].copy()  # Motifs inside this bin
-    __Average_Fitness: float = config['AVERAGE_FITNESS']
-    __Average_IC: float= config['BIN_AVERAGE_IC']
+    __Bin_Range = config['RANGE']  # type: tuple  # Interval that represents [0..0,25] [0,25..0,50]...
+    __Population = config['POPULATION'].copy()  # type: list  # Motifs inside this bin
+    __Average_Fitness = config['AVERAGE_FITNESS']  # type: float
+    __Best_IC = 0.0  # type: float
+    __Minimum_Fitness = 999.0  # type: float
+    __Average_IC = config['BIN_AVERAGE_IC']  # type: float
 
     # def constructor
     def __init__(self, bin_range=__Bin_Range):
         self.__Bin_Range = bin_range
         self.__Population = config['POPULATION'].copy()
 
-    def __str__(self):
-        print('Number organisms: ' + str(len(self.__Population)) + ', Average IC: ' + str(self.__Average_IC))
-        return f'{len(self.__Population)}, {self.__Average_IC}'  # Return number of organisms and average IC
+    def __str__(self):  # Return number of organisms, average IC & Max IC in a string
+        print('Number organisms: ' + str(len(self.__Population)) + ', Average IC: ' + str(self.__Average_IC) +
+              ', Maximum IC: ' + str(self.__Best_IC) + ', Minimum Fitness: ' + str(self.__Minimum_Fitness))
+        return '{}, {}, {}, {}'.format(
+            len(self.__Population), self.__Average_IC, self.__Best_IC, self.__Minimum_Fitness)
 
     # def getters
     def get_bin_range(self):
@@ -35,6 +39,12 @@ class Bin:
 
     def get_average_ic(self) -> float:
         return self.__Average_IC
+
+    def get_maximum_ic(self):
+        return self.__Best_IC
+
+    def get_minimum_fitness(self):
+        return self.__Minimum_Fitness
 
     # def setters
     def set_bin_range(self, bin_range) -> (float, float):
@@ -72,6 +82,21 @@ class Bin:
             average_ic /= len(self.__Population)
             self.__Average_IC = average_ic
 
+    def compute_best_ic(self):
+        if not self.__Population:
+            self.__Best_IC = 0.0
+        else:
+            for org in self.__Population:
+                if org.get_mse_IC() == self.get_minimum_fitness():
+                    self.__Best_IC = org.get_total_ic()
+
+    def compute_minimum_fitness(self):
+        if not self.__Population:
+            self.__Minimum_Fitness = 999.0
+        else:
+            min_now = min(organism.get_mse_IC() for organism in self.__Population)
+            self.__Minimum_Fitness = min(self.__Minimum_Fitness, min_now)
+
     def selection_process(self, population: list[Organism], number_of_competitions: int):
         # Compete some organisms
         """
@@ -82,32 +107,13 @@ class Bin:
         :return:
         """
         for i in range(number_of_competitions):
-            first_organism: Organism = random.choice(self.__Population)  # Get random organism
-            second_organism: Organism = random.choice(self.__Population)  # Get random organism
+            first_organism = random.choice(self.__Population)  # type: Organism #  Get random organism
+            second_organism = random.choice(self.__Population)  # type: Organism # Get random organism
 
             while first_organism == second_organism:  # Control second organism is not the same as first one
                 second_organism = random.choice(self.__Population)
 
             # If first organism has lower MSE second organism is removed
-            if first_organism.get_mse_IC() == 64:
-                print('First organism Gini: ', first_organism.get_gini())
-                print('First organism Ics: ', first_organism.get_position_ic())
-                print('First organism total IC: ', first_organism.get_total_ic())
-                print('First organism total: ', first_organism.get_ic_flag())
-                first_organism.compute_ic()
-                first_organism.compute_gini()
-                print('First organism Gini: ', first_organism.get_gini())
-                print('First organism Ics: ', first_organism.get_position_ic())
-            if second_organism.get_mse_IC() == 64:
-                print('Second organism Gini: ', second_organism.get_gini())
-                print('Second organism Ics: ', second_organism.get_position_ic())
-                print('Second organism total IC: ', second_organism.get_total_ic())
-                print('Second organism total: ', second_organism.get_ic_flag())
-                second_organism.compute_ic()
-                second_organism.compute_gini()
-                print('Second organism Gini: ', second_organism.get_gini())
-                print('Second organism Ics: ', second_organism.get_position_ic())
-
             if first_organism.get_mse_IC() <= second_organism.get_mse_IC():
                 self.__Population.remove(second_organism)  # Delete organism from bin population
                 population.remove(second_organism)  # Delete organism from general population
