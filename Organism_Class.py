@@ -126,6 +126,7 @@ class Organism:
             binding_sites[row, self.__L - 1] = dna_base
 
         self.set_motif(binding_sites)
+
     def compute_ic(self) -> None:
         """
         Computes information content of the organism and saves the following variables
@@ -147,14 +148,14 @@ class Organism:
                 # Count apparition of bases per column
                 counts = np.array([motif[i].count(base) for base in ['A', 'C', 'G', 'T']])
                 base_counts = np.add(base_counts, counts)  # General apparition base count
-            base_counts = base_counts + 1   # Add 1 to every position to eliminate 0s (PSEUDO COUNTS)
+            base_counts = base_counts + 1  # Add 1 to every position to eliminate 0s (PSEUDO COUNTS)
             # Calculate probability of apparition of every base having in mind we added 1 to every position
             base_probabilities = base_counts / (self.__N + 4)
 
             probabilities.append(base_probabilities)
 
-            value = (- np.sum(base_probabilities * np.log2(base_probabilities)))
-            position_information_content = max(0, apriori_entropy - value)  # Compute IC
+            aposteriori_entropy = (- np.sum(base_probabilities * np.log2(base_probabilities)))
+            position_information_content = max(0, apriori_entropy - aposteriori_entropy)  # Compute IC
             position_ic[i] = position_information_content  # Save IC per position
             total_information_content += position_information_content  # Compute total IC
 
@@ -191,7 +192,7 @@ class Organism:
         :return:
         """
         dna_letters: list[str] = ['A', 'C', 'G', 'T']
-        if method == 'basic':   # Change random position
+        if method == 'basic':  # Change random position
             row = random.randint(0, self.__N - 1)  # Get random row
             col = random.randint(0, self.__L - 1)  # Get random column
 

@@ -3,7 +3,6 @@ from __future__ import annotations
 import copy
 import numpy as np
 import random
-import json
 
 from numpy import bool_
 

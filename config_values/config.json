@@ -5,7 +5,7 @@
     "IC": 0,
     "GINI": -1,
     "COMPUTE": true,
-    "BITS_POSITION": 1,
+    "BITS_POSITION": 0.25,
     "RANGE": [
         0.0,
         1.0
